@@ -64,7 +64,7 @@
     "yauzl": "^2.10.0"
   },
   "devDependencies": {
-    "electron": "^41.0.2"
+    "electron": "^41.2.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -73,5 +73,13 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sujon7603/QUICK-NOTE-TAKER.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sujon7603/QUICK-NOTE-TAKER/issues"
+  },
+  "homepage": "https://github.com/sujon7603/QUICK-NOTE-TAKER#readme"
 }

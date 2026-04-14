@@ -1,4 +1,4 @@
-const {app, BrowserWindow, ipcMain} = require('electron')
+const {app, BrowserWindow, ipcMain, dialog} = require('electron')
 
 app.disableHardwareAcceleration();
 
@@ -44,10 +44,60 @@ ipcMain.handle('load-note', async () => {
     return '';
 });
 
+// Delete button 
 ipcMain.handle('delete-note', async() => {
     const filePath = path.join(app.getPath('documents'), 'quicknote.txt');
     if(fs.existsSync(filePath)){
         fs.unlinkSync(filePath);
     }
     return { success: true };
+});
+
+
+// Save As handler
+ipcMain.handle('save-as', async (event, text) => {
+    const result = await dialog.showSaveDialog({
+        defaultPath: 'mynote.txt',
+        filters: [{ name: 'Text Files', extensions: ['txt'] }]
+    });
+    if (result.canceled){
+        return {success:false};
+    }
+    fs.writeFileSync(result.filePath, text, 'utf-8');
+    return{success: true, filePath: result.filePath};
+});
+
+// // Updated Smart Save handler 
+//     ipcMain.handle('smart-save', async (event, textarea, filePath) =>{
+//         const targetPath = filePath || path.join(app.getPath('documents'), 'quicknote.txt');
+//         fs.writeFileSync(targetPath, text, 'utf-8');
+//         return {success: true, filePath: targetPath};
+//     });
+
+
+// New note handler 
+ipcMain.handle('new-note', async (event, text) => {
+    const result = await dialog.showMessageBox({
+        type: 'warning',
+        buttons: ['Discard Changes', 'Cancel'],
+        defaultId: 'Unsaved Changes',
+        message: 'You have unsaved changes. start a new note anyway?'
+    });
+    // result.response === 0 means user clicked 'duscard changes'
+    return { confirmed: result.response === 0 };
+});
+
+// Open file handler 
+ipcMain.handle('open-file', async (event) =>{
+    const result = await dialog.showOpenDialog({
+        properties: ['openFile'],
+        filters: [{ name: 'Text Files', extensions: ['txt']}]
+    });
+
+    if(result.canceled){
+        return {success: false};
+    }
+    const filePath = result.filePaths[0];
+    const content = fs.readFileSync(filePath, 'utf-8');
+    return{ success: true, content, filePath};
 });

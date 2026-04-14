@@ -1,3 +1,4 @@
+const { ipcMain } = require("electron");
 
 
 window.addEventListener('DOMContentLoaded', async () => {
@@ -5,6 +6,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     const savebtn = document.getElementById('save');
     const deleteBtn = document.getElementById('deleteBtn');
     const statusEl = document.getElementById('save_status');
+    const saveAsBtn = document.getElementById('save-as');
+    const newNoteBtn = document.getElementById('new-note');
+    const openFileBtn = document.getElementById('open-file');
 
     // Load saved note on startup 
     const savedNote = await window.electronAPI.loadNote();
@@ -61,8 +65,68 @@ window.addEventListener('DOMContentLoaded', async () => {
             console.error(err);
             // alert('Delete Failed!');
         }
-    }
-});
+        }
+    });
+
+    // Save As Button 
+    saveAsBtn.addEventListener('click', async() => {
+        const result = await window.electronAPI.saveAs(textarea.value);
+        if(result.success){
+            lastSavedText = textarea.value;
+            statusEl.textContent = `saved To: ${result.filePath}`;
+        }else{
+            statusEl.textContent = 'Save As Cencelled';
+        }
+    })
+    
+    
+    // saveAsBtn.addEventListener('click', async () => {
+    //     try{
+    //         const result = await window.electronAPI.saveAs(textarea.value);
+    //         lastSavedText = textarea.value;
+    //         currentFilePath = result.filePath;
+    //         statusEl.textContent = `saved To: ${result.filePath}`;
+    //     }catch (err){
+    //         console.error('Save failed', err);
+    //         statusEl.textContent = 'Save failed';
+    //     }
+        
+    // });
+
+    
+
+    // New Note Button 
+    newNoteBtn.addEventListener('click', async () => {
+        // If no unsaved changes, clear immediately
+        if (textarea.value === lastSavedText){
+            textarea.value = '';
+            lastSavedText = '';
+            statusEl.textContent = 'New note strated';
+            return;
+        }
+        // if there are unsaved changes, ask the user first 
+        const result = await window.electronAPI.newNote();
+        if(result.confirmed){
+            textarea.value = '';
+            lastSavedText = '';
+            statusEl.textContent = 'New note strated';
+        }else{
+            statusEl.textContent = 'New Note Canceled';
+        }
+    });
+
+    // Open file button 
+    openFileBtn.addEventListener('click', async() => {
+        const result = await window.electronAPI.openFile();
+        if(result.success){
+            textarea.value = result.content;
+            lastSavedText = result.content;
+            currentFilePath = result.filePath;
+            statusEl.textContent = `opened: ${result.filePath}`;
+        }else{
+            statusEl.textContent = 'Open cencelled';
+        }
+    });
 
 });
 
