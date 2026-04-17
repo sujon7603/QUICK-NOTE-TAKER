@@ -1,4 +1,4 @@
-const { ipcMain } = require("electron");
+// const { ipcMain } = require("electron");
 
 
 window.addEventListener('DOMContentLoaded', async () => {
@@ -10,6 +10,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     const newNoteBtn = document.getElementById('new-note');
     const openFileBtn = document.getElementById('open-file');
 
+    let currntFilepath = null;
+
     // Load saved note on startup 
     const savedNote = await window.electronAPI.loadNote();
     textarea.value = savedNote;
@@ -17,7 +19,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     savebtn.addEventListener('click', async () => {
         try {
-            await window.electronAPI.saveNote(textarea.value);
+            await window.electronAPI.saveNote(textarea.value, currentFilePath);
             lastSavedText = textarea.value;
             statusEl.textContent = "Manuallysaved successfully!";
             alert('Note saved successfully!');
@@ -60,7 +62,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             textarea.value = ' ';
             lastSavedText = ' ';
             statusEl.textContent = "All Notes Deleted!";
-            statusEl.style.coor = 'red';
+            statusEl.style.color = 'red';
         }catch(err){
             console.error(err);
             // alert('Delete Failed!');
@@ -73,28 +75,13 @@ window.addEventListener('DOMContentLoaded', async () => {
         const result = await window.electronAPI.saveAs(textarea.value);
         if(result.success){
             lastSavedText = textarea.value;
+            currentFilePath = result.filePath;
             statusEl.textContent = `saved To: ${result.filePath}`;
         }else{
             statusEl.textContent = 'Save As Cencelled';
         }
     })
     
-    
-    // saveAsBtn.addEventListener('click', async () => {
-    //     try{
-    //         const result = await window.electronAPI.saveAs(textarea.value);
-    //         lastSavedText = textarea.value;
-    //         currentFilePath = result.filePath;
-    //         statusEl.textContent = `saved To: ${result.filePath}`;
-    //     }catch (err){
-    //         console.error('Save failed', err);
-    //         statusEl.textContent = 'Save failed';
-    //     }
-        
-    // });
-
-    
-
     // New Note Button 
     newNoteBtn.addEventListener('click', async () => {
         // If no unsaved changes, clear immediately

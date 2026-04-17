@@ -7,7 +7,7 @@ const fs = require('node:fs');
 
 function createWindow() {
     const win = new BrowserWindow({
-        width: 1100,
+        width: 1200,
         height: 800,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -29,13 +29,14 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
 });
 
-
-ipcMain.handle('save-note', async (event, text) => {
-    const filePath = path.join(app.getPath('documents'), 'quicknote.txt');
-    fs.writeFileSync(filePath, text, 'utf-8');
-    return { success: true};
+// Save Note Handler 
+ipcMain.handle('save-note', async (event, text, filePath) => {
+    const targetPath = filePath || path.join(app.getPath('documents'), 'quicknote.txt');
+    fs.writeFileSync(targetPath, text, 'utf-8');
+    return { success: true, filePath: targetPath};
 });
 
+// Load Note Handler 
 ipcMain.handle('load-note', async () => {
     const filePath = path.join(app.getPath('documents'), 'quicknote.txt');
     if (fs.existsSync(filePath)){
@@ -80,7 +81,7 @@ ipcMain.handle('new-note', async (event, text) => {
     const result = await dialog.showMessageBox({
         type: 'warning',
         buttons: ['Discard Changes', 'Cancel'],
-        defaultId: 'Unsaved Changes',
+        defaultId: 0,
         message: 'You have unsaved changes. start a new note anyway?'
     });
     // result.response === 0 means user clicked 'duscard changes'

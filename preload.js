@@ -1,17 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-// Before 
-// contextBridge.exposeInMainWorld('electronAPI', {
-//     saveNote: (text) => ipcRenderer.invoke('save-note', text),
-//     loadNote: () => ipcRenderer.invoke('load-note'),
-//     deleteNote: ()=> ipcRenderer.invoke('delete-note')
-// });
 
-
-
-// After 
 contextBridge.exposeInMainWorld('electronAPI', {
-    saveNote: (text) => ipcRenderer.invoke('save-note', text),
+    saveNote: (text, filePath) => ipcRenderer.invoke('save-note', text, filePath),
     loadNote: () => ipcRenderer.invoke('load-note'),
     deleteNote: () => ipcRenderer.invoke('delete-note'),
     saveAs: (text) => ipcRenderer.invoke('save-as', text),
