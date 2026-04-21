@@ -115,6 +115,20 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // Menu action listenner
+    window,electronAPI.onMenuAction('menu-new-note', () => {
+        newNoteBtn.click();
+    });
+    window,electronAPI.onMenuAction('menu-open-note', () => {
+        openFileBtn.click();
+    });
+    window,electronAPI.onMenuAction('menu-save', () => {
+        saveBtn.click();
+    });
+    window,electronAPI.onMenuAction('menu-save-as', () => {
+        saveAsBtn.click();
+    });
+
 });
 
 

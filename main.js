@@ -1,9 +1,11 @@
-const {app, BrowserWindow, ipcMain, dialog} = require('electron')
+const {app, BrowserWindow, ipcMain, dialog, Menu, Tray} = require('electron')
 
 app.disableHardwareAcceleration();
 
 const path = require('node:path');
 const fs = require('node:fs');
+const { type } = require('node:os');
+const notesFilePath = path.join(app.getPath('userData'), 'notes.json');
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -16,6 +18,12 @@ function createWindow() {
         }
     });
     win.loadFile('index.html');
+
+    win.on('close', (event) => {
+        event.preventDefault();  // stop the window from closing immediately
+        win.hide(); // hide the window instead of closing it
+    });
+    return win;
 }
 app.whenReady().then(() => {
     createWindow();
@@ -102,3 +110,149 @@ ipcMain.handle('open-file', async (event) =>{
     const content = fs.readFileSync(filePath, 'utf-8');
     return{ success: true, content, filePath};
 });
+
+// App Menu 
+
+const menuTemplate = [
+    {
+        label: 'File',
+        submenu: [
+            { 
+                label: 'New Note',
+                accelerator: 'CmdOrCtrl+N',
+                click: () => {
+                    BrowserWindow.getFocusedWindow().webContents.send('menu-new-note');
+                }
+            },
+            {
+                label: 'Open Note',
+                accelerator: 'CmdOrCtrl+O',
+                click: () => {  
+                    BrowserWindow.getFocusedWindow().webContents.send('menu-open-note');
+                }
+            },
+            {
+                label: 'Save',
+                accelerator: 'CmdOrCtrl+S',
+                click: () => {
+                    BrowserWindow.getFocusedWindow().webContents.send('menu-save');
+                }
+            },
+            {
+                label: 'Save As',
+                accelerator: 'CmdOrCtrl+Shift+S',
+                click: () => {
+                    BrowserWindow.getFocusedWindow().webContents.send('menu-save-as');
+                }
+            },
+            {
+                type: 'separator',
+            },
+            {
+                label: 'Quit',
+                accelerator: 'CmdOrCtrl+Q',
+                click: () => {
+                    app.quit();
+                }
+            }
+        ]
+    }
+];
+
+const menu = Menu.buildFromTemplate(menuTemplate);
+Menu.setApplicationMenu(menu);
+
+// System tray ===================================
+
+// let tray = null;
+// let mainWindow;
+
+// app.whenReady().then(() => {
+//     mainWindow = createWindow();
+
+//     // macOS behavior
+//     app.on('activate', () => {
+//         if (BrowserWindow.getAllWindows().length === 0) createWindow();
+//     });
+
+//     // ✅ Tray setup
+//     const iconPath = path.join(__dirname, 'img', 'tray-icon.ico');
+//     console.log('Icon path:', iconPath);
+//     console.log('Exists:', fs.existsSync(iconPath));
+
+//     tray = new Tray(iconPath);
+
+//     const trayMenu = Menu.buildFromTemplate([
+//         {
+//             label: 'Show App',
+//             click: () => {
+//                 if (mainWindow) mainWindow.show();
+//             }
+//         },
+//         {
+//             label: 'Quit',
+//             click: () => {
+//                 app.quit();
+//             }
+//         }
+//     ]);
+
+//     tray.setToolTip('Quick Note Taker');
+//     tray.setContextMenu(trayMenu);
+
+//     tray.on('double-click', () => {
+
+//         if (mainWindow.isVisible()) {
+//             mainWindow.hide();
+//         } else {
+//             mainWindow.show();
+//         }
+//     });
+// });
+
+// Read all Notes from Json File 
+function readNotes(){
+    if(!fs.existsSync(notesFilePath)){
+        return [];  // If file doesn't exist, return empty array
+    }
+    const raw = fs.readFileSync(notesFilePath, 'utf-8');
+    return JSON.parse(raw);
+}
+
+// Writes all notes to Json file
+function writeNotes(notes){
+    fs.writeFileSync(notesFilePath, JSON.stringify(notes, null, 2), 'utf-8');
+}
+
+
+// Get all notes handler
+ipcMain.handle('get-notes', async () => {
+    return readNotes();
+})
+
+// Delete all notes handler
+ipcMain.handle('delete-notes', async () => {
+    const notes = readNotes();
+    const filtered = notes.filter(n => n.id !== id);
+    writeNotes(filtered);
+    return { success: true };
+})
+
+// Save a note (Update or Create) handler
+ipcMain.handle('save-note-json', async (event, note) => {
+    const notes = readNotes();
+    const index = notes.fineIndex(n => n.iod === note.id);
+    const now = new Date().toISOString();
+    
+    if (index === -1){
+        notes.push({...note, createdAt: now, updatedAt: now});  // note doesnot exist yet - create it
+    }else{
+        notes[index] = {...notes[index], ...note, updatedAt: now}; // note exists - update it
+    }
+
+    writeNotes(notes);
+    return{success: true};
+});
+
+
+
