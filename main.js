@@ -5,7 +5,10 @@ app.disableHardwareAcceleration();
 const path = require('node:path');
 const fs = require('node:fs');
 const { type } = require('node:os');
-const notesFilePath = path.join(app.getPath('userData'), 'notes.json');
+const { FILE } = require('node:dns');
+let win;
+const notesFilePath = path.join(app.getPath('userData'), 'notes.json')
+console.log(notesFilePath);;
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -164,51 +167,50 @@ Menu.setApplicationMenu(menu);
 
 // System tray ===================================
 
-// let tray = null;
-// let mainWindow;
+let tray = null;
 
-// app.whenReady().then(() => {
-//     mainWindow = createWindow();
+app.whenReady().then(() => {
+    createWindow();
+    // create tray icon 
+    tray = new Tray(path.join(__dirname, 'img', 'tray.png'));
 
-//     // macOS behavior
-//     app.on('activate', () => {
-//         if (BrowserWindow.getAllWindows().length === 0) createWindow();
-//     });
+    tray.on('click', () => {
+        console.log('Tray icon clicked');
+    });
 
-//     // ✅ Tray setup
-//     const iconPath = path.join(__dirname, 'img', 'tray-icon.ico');
-//     console.log('Icon path:', iconPath);
-//     console.log('Exists:', fs.existsSync(iconPath));
+    // Tray context menu 
+    const trayMenu = Menu.buildFromTemplate([
+        {
+            label: 'Show App',
+            click: () => {
+                BrowserWindow.getAllWindows()[0].show();
+            }
+        },
+        {
+            label: 'Quit',
+            click: () => {
+                app.quit();
+            }
+        }
+    ]);
 
-//     tray = new Tray(iconPath);
+    tray.setToolTip('Quick Note Taker');
+    tray.setContextMenu(trayMenu);
 
-//     const trayMenu = Menu.buildFromTemplate([
-//         {
-//             label: 'Show App',
-//             click: () => {
-//                 if (mainWindow) mainWindow.show();
-//             }
-//         },
-//         {
-//             label: 'Quit',
-//             click: () => {
-//                 app.quit();
-//             }
-//         }
-//     ]);
 
-//     tray.setToolTip('Quick Note Taker');
-//     tray.setContextMenu(trayMenu);
+// Double -click tray icon to show window 
+    tray.on('double-click', () => {
+        const win = BrowserWindow.getAllWindows()[0];
+        if (win.isVisible()){
+            win.hide();
+        }else{
+            win.show();
+        }
+    });
+});
 
-//     tray.on('double-click', () => {
 
-//         if (mainWindow.isVisible()) {
-//             mainWindow.hide();
-//         } else {
-//             mainWindow.show();
-//         }
-//     });
-// });
+// SAVE IT IN JSON FILE 
 
 // Read all Notes from Json File 
 function readNotes(){
@@ -221,7 +223,11 @@ function readNotes(){
 
 // Writes all notes to Json file
 function writeNotes(notes){
-    fs.writeFileSync(notesFilePath, JSON.stringify(notes, null, 2), 'utf-8');
+    fs.writeFileSync(
+        notesFilePath,
+        JSON.stringify(notes, null, 2),
+        'utf-8'
+    );
 }
 
 
@@ -230,29 +236,38 @@ ipcMain.handle('get-notes', async () => {
     return readNotes();
 })
 
-// Delete all notes handler
-ipcMain.handle('delete-notes', async () => {
-    const notes = readNotes();
-    const filtered = notes.filter(n => n.id !== id);
-    writeNotes(filtered);
-    return { success: true };
-})
 
 // Save a note (Update or Create) handler
 ipcMain.handle('save-note-json', async (event, note) => {
     const notes = readNotes();
-    const index = notes.fineIndex(n => n.iod === note.id);
+    const index = notes.findIndex(n => n.id === note.id);
     const now = new Date().toISOString();
     
     if (index === -1){
-        notes.push({...note, createdAt: now, updatedAt: now});  // note doesnot exist yet - create it
+        notes.push({
+            ...note,
+            createdAt: now,
+            updatedAt: now
+        });  // note doesnot exist yet - create it
     }else{
-        notes[index] = {...notes[index], ...note, updatedAt: now}; // note exists - update it
+        notes[index] = {
+            ...notes[index],
+            ...note,
+            updatedAt: now
+        }; // note exists - update it
     }
 
     writeNotes(notes);
     return{success: true};
 });
+
+// Delete all notes handler
+ipcMain.handle('delete-notes', async (event, id) => {
+    const notes = readNotes();
+    const filtered = notes.filter(n => n.id !== id);
+    writeNotes(filtered);
+    return { success: true };
+})
 
 
 

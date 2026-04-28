@@ -10,12 +10,24 @@ window.addEventListener('DOMContentLoaded', async () => {
     const newNoteBtn = document.getElementById('new-note');
     const openFileBtn = document.getElementById('open-file');
 
+    // new 
+    const noteInput = document.getElementById('noteInput');
+    const notesList = document.getElementById('notesList');
+
     let currntFilepath = null;
 
     // Load saved note on startup 
     const savedNote = await window.electronAPI.loadNote();
     textarea.value = savedNote;
     let lastSavedText = textarea.value;
+
+    // textarea.addEventListener('input', async () => {
+    //     const note = {
+    //         id: currentNoteId,
+    //         textarea: textarea.value
+    //     };
+    //     await window.electronAPI.saveNoteJson(note);
+    // })
 
     savebtn.addEventListener('click', async () => {
         try {
@@ -55,37 +67,37 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
 
 
-    deleteBtn.addEventListener('click', async() => {
-    if(confirm('Really delete All Notes? This cant be undone!')){
-        try{
-            await window.electronAPI.deleteNote();
-            textarea.value = ' ';
-            lastSavedText = ' ';
-            statusEl.textContent = "All Notes Deleted!";
-            statusEl.style.color = 'red';
-        }catch(err){
-            console.error(err);
-            // alert('Delete Failed!');
-        }
+    deleteBtn.addEventListener('click', async () => {
+        if (confirm('Really delete All Notes? This cant be undone!')) {
+            try {
+                await window.electronAPI.deleteNote();
+                textarea.value = ' ';
+                lastSavedText = ' ';
+                statusEl.textContent = "All Notes Deleted!";
+                statusEl.style.color = 'red';
+            } catch (err) {
+                console.error(err);
+                // alert('Delete Failed!');
+            }
         }
     });
 
     // Save As Button 
-    saveAsBtn.addEventListener('click', async() => {
+    saveAsBtn.addEventListener('click', async () => {
         const result = await window.electronAPI.saveAs(textarea.value);
-        if(result.success){
+        if (result.success) {
             lastSavedText = textarea.value;
             currentFilePath = result.filePath;
             statusEl.textContent = `saved To: ${result.filePath}`;
-        }else{
+        } else {
             statusEl.textContent = 'Save As Cencelled';
         }
     })
-    
+
     // New Note Button 
     newNoteBtn.addEventListener('click', async () => {
         // If no unsaved changes, clear immediately
-        if (textarea.value === lastSavedText){
+        if (textarea.value === lastSavedText) {
             textarea.value = '';
             lastSavedText = '';
             statusEl.textContent = 'New note strated';
@@ -93,41 +105,99 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
         // if there are unsaved changes, ask the user first 
         const result = await window.electronAPI.newNote();
-        if(result.confirmed){
+        if (result.confirmed) {
             textarea.value = '';
             lastSavedText = '';
             statusEl.textContent = 'New note strated';
-        }else{
+        } else {
             statusEl.textContent = 'New Note Canceled';
         }
     });
 
     // Open file button 
-    openFileBtn.addEventListener('click', async() => {
+    openFileBtn.addEventListener('click', async () => {
         const result = await window.electronAPI.openFile();
-        if(result.success){
+        if (result.success) {
             textarea.value = result.content;
             lastSavedText = result.content;
             currentFilePath = result.filePath;
             statusEl.textContent = `opened: ${result.filePath}`;
-        }else{
+        } else {
             statusEl.textContent = 'Open cencelled';
         }
     });
 
     // Menu action listenner
-    window,electronAPI.onMenuAction('menu-new-note', () => {
+    window, electronAPI.onMenuAction('menu-new-note', () => {
         newNoteBtn.click();
     });
-    window,electronAPI.onMenuAction('menu-open-note', () => {
+    window, electronAPI.onMenuAction('menu-open-note', () => {
         openFileBtn.click();
     });
-    window,electronAPI.onMenuAction('menu-save', () => {
+    window, electronAPI.onMenuAction('menu-save', () => {
         saveBtn.click();
     });
-    window,electronAPI.onMenuAction('menu-save-as', () => {
+    window, electronAPI.onMenuAction('menu-save-as', () => {
         saveAsBtn.click();
     });
+
+    //  JSON FILE EXTRA CODE IT WILL BE MODIFIED LATER******************************************************************
+
+    let currentEditId = null;
+
+    // Load notes on start
+    async function loadNotes() {
+        const notes = await window.api.getNotes();
+        renderNotes(notes);
+    }
+
+    // Save note
+    async function saveNote() {
+        const text = noteInput.value.trim();
+        if (!text) return;
+
+        await window.api.saveNote({
+            id: currentEditId,
+            text
+        });
+
+        noteInput.value = '';
+        currentEditId = null;
+
+        loadNotes();
+    }
+
+    // Render notes in UI
+    function renderNotes(notes) {
+        notesList.innerHTML = '';
+
+        notes.forEach(note => {
+            const li = document.createElement('li');
+
+            li.innerHTML = `
+            ${note.text}
+            <button onclick="editNote('${note.id}', '${note.text}')">Edit</button>
+            <button onclick="deleteNote('${note.id}')">Delete</button>
+        `;
+
+            notesList.appendChild(li);
+        });
+    }
+
+    // Edit note
+    function editNote(id, text) {
+        currentEditId = id;
+        noteInput.value = text;
+    }
+
+    // Delete note
+    async function deleteNote(id) {
+        await window.api.deleteNote(id);
+        loadNotes();
+    }
+
+    // Start app
+    loadNotes();
 
 });
 
